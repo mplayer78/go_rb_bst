@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // Node is a Single Node in a Binary Tree
@@ -17,6 +19,7 @@ type Node struct {
 	Right  *Node
 }
 
+// BST is just a container for the tree structure giving a target for methods
 type BST struct {
 	Head *Node
 }
@@ -54,7 +57,6 @@ func (b *BST) addNumber(val int) {
 // flatten outputs the nodes to a list, breadth first
 func (b *BST) flatten() []*Node {
 	Queue := make([]*Node, 1, 16)
-	Queue[0] = b.Head
 	index := 0
 	for Queue[index] != nil {
 		if Queue[index].Left != nil {
@@ -72,19 +74,24 @@ func (b *BST) flatten() []*Node {
 }
 
 func (b *BST) checkDepth() (depth int) {
-	depth = getD(b.Head)
+	depth = 0
+	// pass pointer to max to be used in recursive function
+	getD(b.Head, &depth)
 	return
 }
 
-func getD(n *Node, d ...int) int {
+func getD(n *Node, max *int, d ...int) int {
 	if len(d) == 0 {
 		d = append(d, 0)
 	}
-	if n != nil {
-		getD(n.Left, d[0]+1)
-		getD(n.Right, d[0]+1)
+	if *max < d[0] {
+		*max = d[0]
 	}
-	return d[0]
+	if n != nil {
+		getD(n.Left, max, d[0]+1)
+		getD(n.Right, max, d[0]+1)
+	}
+	return *max
 }
 
 func main() {
@@ -106,7 +113,10 @@ func main() {
 			log.Fatal(err)
 		}
 		bst.addNumber(num)
-		bst.inOrderTW()
+		// for _, n := range bst.flatten() {
+		// 	fmt.Println(n.Value)
+		// }
+		bst.printTree()
 	}
 }
 
@@ -125,5 +135,48 @@ func tw(n *Node) {
 		tw(n.Left)
 		println(n.Value)
 		tw(n.Right)
+	}
+}
+
+func (b *BST) printTree() {
+	currLayerIndex := 0
+	newLayer := make([]*Node, 0)
+	newLayer = append(newLayer, b.Head)
+	// starting at index 0 create slices, of size 2^index, initialised with nil and nodes inserted in place
+	for currLayerIndex < b.checkDepth() {
+		// assign a trailing pointer
+		currLayer := newLayer
+		newLayer = make([]*Node, int(math.Pow(2, float64(currLayerIndex+1))))
+		// create padding to ensure numbers in correct position
+		spaces := strings.Repeat(" ", int(math.Pow(2, float64(b.checkDepth()-currLayerIndex))))
+		for ind, val := range currLayer {
+			var currVal string
+			if val != nil {
+				currVal = fmt.Sprint(val.Value)
+			} else {
+				currVal = " "
+			}
+			fmt.Print(spaces + currVal + spaces)
+			if val != nil {
+				if val.Left != nil {
+					newLayer[ind*2] = val.Left
+				}
+				if val.Right != nil {
+					newLayer[ind*2+1] = val.Right
+				}
+			}
+		}
+		fmt.Println("")
+		// TODO Print out the tree structure
+		// fmt.Print(strings.Repeat(" ", len(spaces)))
+		// for _, val := range newLayer {
+		// 	if val != nil {
+		// 		fmt.Print(strings.Repeat("_", len(spaces)))
+		// 	} else {
+		// 		fmt.Print(strings.Repeat(" ", len(spaces)))
+		// 	}
+		// }
+		// fmt.Println("")
+		currLayerIndex++
 	}
 }

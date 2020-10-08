@@ -24,7 +24,7 @@ type BST struct {
 	Head *Node
 }
 
-func insertNode(b *BST, n *Node) {
+func (b *BST) insertNode(n *Node) {
 	var old *Node = nil
 	var current *Node = b.Head
 	for current != nil {
@@ -51,7 +51,7 @@ func (b *BST) addNumber(val int) {
 	newNode := Node{
 		Value: val,
 	}
-	insertNode(b, &newNode)
+	b.insertNode(&newNode)
 }
 
 // flatten outputs the nodes to a list, breadth first
@@ -94,28 +94,110 @@ func getD(n *Node, max *int, d ...int) int {
 	return *max
 }
 
+func (b *BST) get(val int) (n *Node) {
+	n = b.Head
+	for n != nil && val != n.Value {
+		if val < n.Value {
+			n = n.Left
+		} else if val > n.Value {
+			n = n.Right
+		}
+	}
+	return
+}
+
+func (b *BST) delete(n *Node) {
+	if n.Left == nil {
+		fmt.Println("n.Parent", n.Parent)
+		*n.Parent = nil
+		fmt.Println("n.Parent", n.Parent)
+
+	} else if n.Right == nil {
+		n.Parent = n.Left
+	} else if n.Right == n.successor() {
+		n.Right.Left = n.Left
+		n = n.Right
+	} else {
+		s := n.successor()
+		s.Parent.Left = s.Right
+		s.Left = n.Left
+		n = s
+	}
+}
+
+func (b *BST) deleteNum(num int) {
+	node := b.get(num)
+	b.delete(&node)
+}
+
+func treeMin(n *Node) (min *Node) {
+	min = n
+	for min.Left != nil {
+		min = min.Left
+	}
+	return
+}
+
+func treeMax(n *Node) (max *Node) {
+	max = n
+	for max.Right != nil {
+		max = max.Right
+	}
+	return
+}
+
+func (n *Node) successor() (suc *Node) {
+	suc = n
+	if suc.Right != nil {
+		suc = treeMin(suc.Right)
+	} else {
+		for suc == suc.Parent.Right {
+			suc = suc.Parent
+		}
+		suc = suc.Parent
+	}
+	return
+}
+
 func main() {
 	bst := BST{}
 	bst.inOrderTW()
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Binary Tree Add")
+	fmt.Println("Binary Tree")
 
 	for {
-		fmt.Print("Insert: ")
+		re := regexp.MustCompile(`\d+`)
+		fmt.Println("Options:")
+		fmt.Println("(1) Add to tree")
+		fmt.Println("(2) Delete from tree")
+		fmt.Println("(3) Pre-populate tree")
+		option, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+		option = string(re.Find([]byte(option)))
+		fmt.Print("Give number: ")
 		text, err := reader.ReadString('\n')
 		if err != nil {
 			log.Fatal(err)
 		}
-		re := regexp.MustCompile(`\d+`)
 		stripped := string(re.Find([]byte(text)))
 		num, err := strconv.Atoi(stripped)
 		if err != nil {
 			log.Fatal(err)
 		}
-		bst.addNumber(num)
-		// for _, n := range bst.flatten() {
-		// 	fmt.Println(n.Value)
-		// }
+		switch option {
+		case "1":
+			bst.addNumber(num)
+		case "2":
+			bst.deleteNum(num)
+		case "3":
+			for _, val := range []int{20, 15, 25, 10, 17, 27, 8, 12, 6, 11, 13} {
+				bst.addNumber(val)
+			}
+		default:
+			return
+		}
 		bst.printTree()
 	}
 }
